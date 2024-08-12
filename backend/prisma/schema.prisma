@@ -1,0 +1,141 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// utilisateur de l'application
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  userName  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  orders    Order[]
+  invoices  Invoice[]
+}
+
+// roles des utilisateurs de l'application
+
+// model Role {
+//   id    Int    @id @default(autoincrement())
+//   name  String @unique
+//   users User[]
+// }
+
+// les produits
+
+model Product {
+  id           String            @id @default(cuid())
+  name         String
+  description  String?
+  price        Float
+  stock        Int
+  minimumStock Int               @default(2)
+  category     Category          @relation(fields: [categoryName], references: [name])
+  categoryName String
+  suppliers    ProductSupplier[]
+  orderItems   OrderItem[]
+  invoices     Invoice[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+// table des catégories des produits
+
+model Category {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique
+  products Product[]
+}
+
+// table client
+
+model Client {
+  id          String    @id @default(cuid())
+  prenom      String
+  email       String    @unique
+  phoneNumber String?
+  address     String?
+  orders      Order[]
+  invoices    Invoice[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// table fournisseurs
+
+model Supplier {
+  id          String            @id @default(cuid())
+  name        String
+  email       String            @unique
+  phoneNumber String?
+  address     String?
+  products    ProductSupplier[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+// relation many-to-many entre Product et Supplier
+
+model ProductSupplier {
+  productId  String
+  supplierId String
+  product    Product  @relation(fields: [productId], references: [id])
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  @@id([productId, supplierId])
+}
+
+// table des commandes des clients
+
+model Order {
+  id         String      @id @default(cuid())
+  client     Client      @relation(fields: [clientId], references: [id])
+  clientId   String
+  user       User        @relation(fields: [userId], references: [id])
+  userId     String
+  orderItems OrderItem[]
+  invoice    Invoice[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+// les produits inclus dans chaque commande
+
+model OrderItem {
+  id        String  @id @default(cuid())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   String
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+  quantity  Int
+  price     Float
+}
+
+// factures liées aux commandes des clients
+
+model Invoice {
+  id        String    @id @default(cuid())
+  order     Order     @relation(fields: [orderId], references: [id])
+  orderId   String
+  client    Client    @relation(fields: [clientId], references: [id])
+  clientId  String
+  user      User      @relation(fields: [userId], references: [id])
+  userId    String
+  products  Product[]
+  amount    Float
+  issuedAt  DateTime  @default(now())
+  dueDate   DateTime
+  status    String // ex : 'Paid', 'Unpaid', 'Overdue'
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
